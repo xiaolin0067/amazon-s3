@@ -12,6 +12,7 @@ public class IndexController {
 
     @RequestMapping("/index")
     public String index(){
-        return "index";
+        // 访问前端页面
+        return "upload.html";
     }
 }
