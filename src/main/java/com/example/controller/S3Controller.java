@@ -52,7 +52,7 @@ public class S3Controller {
                 response.setCharacterEncoding("UTF-8");
                 response.setContentType("application/octet-stream");
                 response.addHeader("Content-Disposition", "attachment; filename=" + curUploadFile.getFileName());
-                byte[] bytes = new byte[1024];
+                byte[] bytes = new byte[1024 * 10];
                 int n;
                 while ((n = inputStream.read(bytes)) != -1) {
                     outputStream.write(bytes, 0, n);
