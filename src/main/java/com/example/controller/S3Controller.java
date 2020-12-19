@@ -5,13 +5,13 @@ import com.example.config.UploadFile;
 import com.example.model.Result;
 import com.example.util.S3Client;
 import com.google.gson.Gson;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.UUID;
@@ -24,7 +24,7 @@ import java.util.UUID;
 @RequestMapping("/s3")
 public class S3Controller {
 
-    @Autowired
+    @Resource
     private Config config;
 
     private UploadFile curUploadFile;
@@ -46,36 +46,25 @@ public class S3Controller {
         if (curUploadFile == null) {
             return gson.toJson(new Result(202, "当前还未上传文件"));
         }
-        OutputStream outputStream = null;
-        InputStream inputStream = null;
-        try {
+        try (OutputStream outputStream = response.getOutputStream()) {
             S3Client client = new S3Client(config);
-            inputStream = client.getDownloadStream(curUploadFile.getFilePath());
-            response.setCharacterEncoding("UTF-8");
-            response.setContentType("application/octet-stream");
-            response.addHeader("Content-Disposition", "attachment; filename=" + curUploadFile.getFileName());
-            outputStream = response.getOutputStream();
-            byte[] bytes = new byte[1024];
-            int n;
-            while ((n = inputStream.read(bytes)) != -1) {
-                outputStream.write(bytes, 0, n);
-            }
-            outputStream.flush();
-            inputStream.close();
-            outputStream.close();
-        }catch (Exception e){
-            e.printStackTrace();
-        }finally {
-            try {
-                if (outputStream != null) {
-                    outputStream.close();
+            try (InputStream inputStream = client.getDownloadStream(curUploadFile.getFilePath())) {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("application/octet-stream");
+                response.addHeader("Content-Disposition", "attachment; filename=" + curUploadFile.getFileName());
+                byte[] bytes = new byte[1024];
+                int n;
+                while ((n = inputStream.read(bytes)) != -1) {
+                    outputStream.write(bytes, 0, n);
                 }
-                if (inputStream != null) {
-                    inputStream.close();
-                }
-            } catch (IOException e) {
+                outputStream.flush();
+            }catch (Exception e){
                 e.printStackTrace();
+                return gson.toJson(new Result(203, "文件下载失败"));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return gson.toJson(new Result(203, "文件下载失败"));
         }
         return null;
     }
